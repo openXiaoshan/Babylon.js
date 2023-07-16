@@ -15,6 +15,8 @@ import { ButtonLineComponent } from "shared-ui-components/lines/buttonLineCompon
 import { OptionsLineComponent } from "shared-ui-components/lines/optionsLineComponent";
 import { FloatLineComponent } from "shared-ui-components/lines/floatLineComponent";
 import { SliderLineComponent } from "shared-ui-components/lines/sliderLineComponent";
+import { CubeTexture } from "core/Materials/Textures/cubeTexture";
+import { Constants } from "core/Engines";
 
 export class ImageSourcePropertyTabComponent extends React.Component<IPropertyComponentProps, { isEmbedded: boolean }> {
     get imageSourceBlock(): ImageSourceBlock {
@@ -98,12 +100,20 @@ export class ImageSourcePropertyTabComponent extends React.Component<IPropertyCo
                     const base64data = reader.result as string;
 
                     let extension: string | undefined = undefined;
+                    let isCube = false;
                     if (file.name.toLowerCase().indexOf(".dds") > 0) {
                         extension = ".dds";
+                        isCube = true;
                     } else if (file.name.toLowerCase().indexOf(".env") > 0) {
                         extension = ".env";
+                        isCube = true;
                     }
-                    (texture as Texture).updateURL(base64data, extension, () => this.updateAfterTextureLoad());
+                    if(isCube && !texture.isCube){
+                        const cubeTexture = new CubeTexture(base64data, (this.props.stateManager.data as GlobalState).nodeMaterial.getScene(), null, false, null, () => this.updateAfterTextureLoad(), null, Constants.TEXTUREFORMAT_RGBA, false, extension);
+                        this.imageSourceBlock.texture = cubeTexture
+                    }else{
+                        (texture as Texture).updateURL(base64data, extension, () => this.updateAfterTextureLoad());
+                    }
                 };
             },
             undefined,

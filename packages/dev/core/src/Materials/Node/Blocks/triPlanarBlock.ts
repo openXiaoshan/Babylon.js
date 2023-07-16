@@ -18,6 +18,7 @@ import { ImageSourceBlock } from "./Dual/imageSourceBlock";
 import { NodeMaterialConnectionPointCustomObject } from "../nodeMaterialConnectionPointCustomObject";
 import { EngineStore } from "../../../Engines/engineStore";
 import { editableInPropertyPage, PropertyTypeForEdition } from "../nodeMaterialDecorator";
+import { CubeTexture } from "core/Materials/Textures/cubeTexture";
 
 /**
  * Block used to read a texture with triplanar mapping (see "boxmap" in https://iquilezles.org/articles/biplanar/)
@@ -36,18 +37,18 @@ export class TriPlanarBlock extends NodeMaterialBlock {
     @editableInPropertyPage("Project as cube", PropertyTypeForEdition.Boolean, "ADVANCED", { notifiers: { update: true } })
     public projectAsCube: boolean = false;
 
-    protected _texture: Nullable<Texture>;
+    protected _texture: Nullable<Texture | CubeTexture>;
     /**
      * Gets or sets the texture associated with the node
      */
-    public get texture(): Nullable<Texture> {
+    public get texture(): Nullable<Texture | CubeTexture> {
         if (this.source.isConnected) {
             return (this.source.connectedPoint?.ownerBlock as ImageSourceBlock).texture;
         }
         return this._texture;
     }
 
-    public set texture(texture: Nullable<Texture>) {
+    public set texture(texture: Nullable<Texture | CubeTexture>) {
         if (this._texture === texture) {
             return;
         }
@@ -72,7 +73,7 @@ export class TriPlanarBlock extends NodeMaterialBlock {
     /**
      * Gets the textureY associated with the node
      */
-    public get textureY(): Nullable<Texture> {
+    public get textureY(): Nullable<Texture | CubeTexture> {
         if (this.sourceY.isConnected) {
             return (this.sourceY.connectedPoint?.ownerBlock as ImageSourceBlock).texture;
         }
@@ -82,7 +83,7 @@ export class TriPlanarBlock extends NodeMaterialBlock {
     /**
      * Gets the textureZ associated with the node
      */
-    public get textureZ(): Nullable<Texture> {
+    public get textureZ(): Nullable<Texture | CubeTexture> {
         if (this.sourceZ?.isConnected) {
             return (this.sourceY.connectedPoint?.ownerBlock as ImageSourceBlock).texture;
         }
@@ -399,12 +400,12 @@ export class TriPlanarBlock extends NodeMaterialBlock {
             vec4 ${x} = texture2D(${samplerName}, ${uvx});
             vec4 ${y} = texture2D(${samplerYName}, ${uvy});
             vec4 ${z} = texture2D(${samplerZName}, ${uvz});
-           
+
             // blend weights
             vec3 ${w} = pow(abs(${n}), vec3(${sharpness}));
 
             // blend and return
-            vec4 ${this._tempTextureRead} = (${x}*${w}.x + ${y}*${w}.y + ${z}*${w}.z) / (${w}.x + ${w}.y + ${w}.z);        
+            vec4 ${this._tempTextureRead} = (${x}*${w}.x + ${y}*${w}.y + ${z}*${w}.z) / (${w}.x + ${w}.y + ${w}.z);
         `;
     }
 
@@ -493,16 +494,21 @@ export class TriPlanarBlock extends NodeMaterialBlock {
             return codeString;
         }
 
-        codeString += `${this._codeVariableName}.texture = new BABYLON.Texture("${this.texture.name}", null, ${this.texture.noMipmap}, ${this.texture.invertY}, ${this.texture.samplingMode});\r\n`;
+        if(this.texture instanceof Texture){
+            codeString += `${this._codeVariableName}.texture = new BABYLON.Texture("${this.texture.name}", null, ${this.texture.noMipmap}, ${this.texture.invertY}, ${this.texture.samplingMode});\r\n`;
+            codeString += `${this._codeVariableName}.texture.uAng = ${this.texture.uAng};\r\n`;
+            codeString += `${this._codeVariableName}.texture.vAng = ${this.texture.vAng};\r\n`;
+            codeString += `${this._codeVariableName}.texture.wAng = ${this.texture.wAng};\r\n`;
+            codeString += `${this._codeVariableName}.texture.uOffset = ${this.texture.uOffset};\r\n`;
+            codeString += `${this._codeVariableName}.texture.vOffset = ${this.texture.vOffset};\r\n`;
+            codeString += `${this._codeVariableName}.texture.uScale = ${this.texture.uScale};\r\n`;
+            codeString += `${this._codeVariableName}.texture.vScale = ${this.texture.vScale};\r\n`;
+        } else if (this.texture instanceof CubeTexture){
+            codeString += `${this._codeVariableName}.texture = new BABYLON.CubeTexture("${this.texture.name}", null, ${this.texture.noMipmap}, ${this.texture.samplingMode});\r\n`;
+        }
+
         codeString += `${this._codeVariableName}.texture.wrapU = ${this.texture.wrapU};\r\n`;
         codeString += `${this._codeVariableName}.texture.wrapV = ${this.texture.wrapV};\r\n`;
-        codeString += `${this._codeVariableName}.texture.uAng = ${this.texture.uAng};\r\n`;
-        codeString += `${this._codeVariableName}.texture.vAng = ${this.texture.vAng};\r\n`;
-        codeString += `${this._codeVariableName}.texture.wAng = ${this.texture.wAng};\r\n`;
-        codeString += `${this._codeVariableName}.texture.uOffset = ${this.texture.uOffset};\r\n`;
-        codeString += `${this._codeVariableName}.texture.vOffset = ${this.texture.vOffset};\r\n`;
-        codeString += `${this._codeVariableName}.texture.uScale = ${this.texture.uScale};\r\n`;
-        codeString += `${this._codeVariableName}.texture.vScale = ${this.texture.vScale};\r\n`;
         codeString += `${this._codeVariableName}.texture.coordinatesMode = ${this.texture.coordinatesMode};\r\n`;
 
         return codeString;

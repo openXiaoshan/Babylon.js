@@ -200,6 +200,16 @@ export class NodeMaterialBuildState {
     /**
      * @internal
      */
+    public _emitCubeSampler(name: string) {
+        if (this.samplers.indexOf(name) < 0) {
+            this._samplerDeclaration += `uniform samplerCube ${name};\r\n`;
+            this.samplers.push(name);
+        }
+    }
+
+    /**
+     * @internal
+     */
     public _getGLType(type: NodeMaterialBlockConnectionPointTypes): string {
         switch (type) {
             case NodeMaterialBlockConnectionPointTypes.Float:
